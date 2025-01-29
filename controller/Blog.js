@@ -21,7 +21,7 @@ exports.blogRead = async (req, res, next) => {
         res.status(200).json({
             status: 'success',
             message: "Blogs Read Are Succewsfully",
-            data : findData
+            data: findData
         })
     } catch (error) {
         res.status(404).json({
@@ -45,7 +45,7 @@ exports.blogCreate = async (req, res, next) => {
             author,
             date,
             category,
-            authorId : req.author
+            authorId: req.author
         })
 
         res.status(201).json({
@@ -64,13 +64,18 @@ exports.blogCreate = async (req, res, next) => {
 
 exports.blogUpdate = async (req, res, next) => {
     try {
+
         // console.log("hello");
 
         // Find the blog by ID
         const findId = await BLOG.findById(req.params.id);
         if (!findId) throw new Error("Blog Not Found");
 
-        // Handle file updates (image replacement)
+
+        if (String(findId.authorId) !== req.author) throw new Error("You are not the author of this blog")
+
+
+        // console.log(findId)
         let updatedImage;
         if (req.files && req.files.length > 0) {
 
@@ -89,7 +94,7 @@ exports.blogUpdate = async (req, res, next) => {
             image: updatedImage,
         };
 
-        const data = await BLOG.findByIdAndUpdate(req.params.id, updatedData, { new: true });
+        let data = await BLOG.findOneAndUpdate({ _id: req.params.id, authorId: req.author }, updatedData, { new: true });
 
         res.status(200).json({
             status: "SUCCESS",
@@ -112,9 +117,11 @@ exports.blogDelete = async (req, res, next) => {
         let findId = await BLOG.findById(req.params.id)
         if (!findId) throw new Error("Blog is Not Found");
 
-        findId.image.map(el => fs.unlinkSync(`./public/blog-Images/${el}`))
 
-        let data = await BLOG.findByIdAndDelete(req.params.id)
+        let data = await BLOG.findOneAndDelete({ _id: req.params.id, authorId: req.author })
+        if (!data) throw new Error("Please Enter Valid ID! Unauthorised! You have Not Access To another Blog Delete")
+
+        findId.image.map(el => fs.unlinkSync(`./public/blog-Images/${el}`))
 
         res.status(200).json({
             status: "SUCCESS",
